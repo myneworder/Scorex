@@ -147,7 +147,13 @@ class StoredState(database: DB) extends LagonakiState with ScorexLogging {
             val newChange = currentChange + delta
             iChanges.updated(acc, newChange)
           }
-          if (changes.forall(a => balances.get(a._1) + a._2 >= 0)) tx +: acc
+          val check = changes.forall { a =>
+            val balance = tmpBalances.getOrElseUpdate(a._1, balances.get(a._1))
+            val newBalance = balance + a._2
+            if (newBalance >= 0) tmpBalances.put(a._1, newBalance)
+            newBalance >= 0
+          }
+          if (check) tx +: acc
           else acc
         case _ => acc
       }
